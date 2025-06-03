@@ -5,7 +5,7 @@
    ───────────────────────────────────────────────────────────── */
 
 /* ------------ CONFIG ------------------------------------------------- */
-const GEO_URL  = 'data/pc4.geojson';
+const GEO_URL  = 'data/pc4-simplified.geojson';
 const VEG_URL  = 'data/vegetation.csv';
 const PROV_URL = 'data/provinces.geojson';
 
@@ -58,6 +58,28 @@ const sumPct = v => Math.min(100, v.trees+v.bushes+v.grass);
 const tooltip = d3.select('body').append('div')
   .attr('class','tooltip').style('opacity',0);
 
+/* ------------ UI CONTROLS ------------------------------------------- */
+const controls = {
+  trees:  d3.select('#trees'),
+  bushes: d3.select('#bushes'),
+  grass:  d3.select('#grass')
+};
+
+function updateResults(){
+  const t = +controls.trees.property('value');
+  const b = +controls.bushes.property('value');
+  const g = +controls.grass.property('value');
+
+  d3.select('#pollution').text((100 - (t*0.5 + b*0.3 + g*0.2)).toFixed(1));
+  d3.select('#heat').text((100 - (t*0.4 + b*0.2 + g*0.4)).toFixed(1));
+  d3.select('#biodiversity').text(((t*0.4 + b*0.4 + g*0.2)).toFixed(1));
+}
+
+Object.values(controls).forEach(ctrl =>
+  ctrl.on('input', updateResults)
+);
+updateResults();
+
 /* ------------ LOADER ------------------------------------------------- */
 const loader = d3.select('#loader');
 
@@ -74,6 +96,7 @@ function updateTiles(t = projTransform()){   // default = projection
     .join('image')
       .attr('xlink:href', d =>
         `https://tile.openstreetmap.org/${d[2]}/${d[0]}/${d[1]}.png`)
+      .attr('crossorigin','anonymous')
       .attr('x',d=>d[0]).attr('y',d=>d[1])
       .attr('width',1).attr('height',1);
 }
