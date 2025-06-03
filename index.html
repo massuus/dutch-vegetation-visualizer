@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>🌱 GreenBalance Simulator</title>
+
+  <link rel="stylesheet" href="style.css" />
+  <script src="https://d3js.org/d3.v7.min.js"></script>
+  <script src="https://unpkg.com/d3-tile@1"></script>
+</head>
+<body>
+
+  <h1>🌱 GreenBalance Simulator</h1>
+
+  <!-- Sliders (unchanged) -->
+  <div id="controls">
+    <label>Trees  <input type="range" id="trees"  min="0" max="100" value="33" /></label>
+    <label>Bushes <input type="range" id="bushes" min="0" max="100" value="33" /></label>
+    <label>Grass  <input type="range" id="grass"  min="0" max="100" value="33" /></label>
+  </div>
+
+  <!-- Map SVG -->
+  <svg id="map" width="800" height="800"></svg>
+
+  <!-- Results read-out (unchanged) -->
+  <div id="results">
+    <p>Air pollution index: <span id="pollution">--</span></p>
+    <p>Urban heat index:   <span id="heat">--</span></p>
+    <p>Biodiversity:       <span id="biodiversity">--</span></p>
+  </div>
+
+  <!-- Ranking side-panel -->
+  <aside id="rank-panel" class="hidden"></aside>
+
+  <!-- Loader & script -->
+  <script src="script.js"></script>
+</body>
+</html>
