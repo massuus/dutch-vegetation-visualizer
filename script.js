@@ -312,8 +312,8 @@ Promise.all([
   /* postcode registry + attach to provinces */
   pc4Geo.features.forEach(f=>{
     const b = d3.geoBounds(f);
-    const area = (b[1][0]-b[0][0]) * (b[1][1]-b[0][1]);
-    if(area > MAX_BBOX_SIZE) return;      // skip bogus shapes
+    const area = Math.abs((b[1][0]-b[0][0]) * (b[1][1]-b[0][1]));
+    if(area > MAX_BBOX_SIZE || !isFinite(area)) return;  // skip bogus shapes
 
     const code = codeOf(f);
     const v    = vegMap.get(code);
