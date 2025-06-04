@@ -60,6 +60,20 @@ function mergeTransforms(a,b){
           .scale(a.k*b.k);
 }
 
+/* crude bounds for features */
+function boundsOf(f){
+  let xmin=Infinity,ymin=Infinity,xmax=-Infinity,ymax=-Infinity;
+  (function walk(c){if(Array.isArray(c[0])) c.forEach(walk); else{const[x,y]=c;if(x<xmin)xmin=x;if(y<ymin)ymin=y;if(x>xmax)xmax=x;if(y>ymax)ymax=y;}})(f.geometry.coordinates);
+  return [[xmin,ymin],[xmax,ymax]];
+}
+
+/* centroid via simple average */
+function centroidOf(f){
+  let sx=0,sy=0,n=0;
+  (function walk(c){if(Array.isArray(c[0])) c.forEach(walk); else{sx+=c[0];sy+=c[1];n++;}})(f.geometry.coordinates);
+  return [sx/n, sy/n];
+}
+
 /* ------------ COLOUR SCALES ----------------------------------------- */
 const vegColor = p => d3.interpolateRdYlGn(
   Math.pow(Math.max(0,Math.min(100,p))/100, gamma)
@@ -272,9 +286,9 @@ function handleRankClick(code){
 
   /* ensure right province view */
   if(!currentProvince ||
-     !d3.geoContains(currentProvince, d3.geoCentroid(d.feature))){
+     !d3.geoContains(currentProvince, centroidOf(d.feature))){
     const prov = provinceGeo.features.find(p=>
-        d3.geoContains(p, d3.geoCentroid(d.feature)));
+        d3.geoContains(p, centroidOf(d.feature)));
     if(prov) zoomProvince(prov);
   }
 
@@ -302,10 +316,10 @@ Promise.all([
   veg.forEach(r=>vegMap.set(r.postcode.toString(), r));
 
   /* postcode registry */
-  pc4Geo.features.forEach(f=>{
-    const b = d3.geoBounds(f);
+  pc4Geo.features = pc4Geo.features.filter(f=>{
+    const b = boundsOf(f);
     const area = Math.abs((b[1][0]-b[0][0])*(b[1][1]-b[0][1]));
-    if(!isFinite(area) || area > MAX_BBOX_SIZE) return;  // skip bogus shapes
+    if(!isFinite(area) || area > MAX_BBOX_SIZE) return false;  // skip bogus shapes
 
     const code = codeOf(f);
     const v    = vegMap.get(code);
@@ -315,13 +329,14 @@ Promise.all([
       total: v ? sumPct(v) : -1,
       feature: f
     });
+  return true;
 
   });
 
   /* compute averages */
   provGeo.features.forEach(p=>{
     p.postcodes = pc4Geo.features.filter(f=>
-        d3.geoContains(p, d3.geoCentroid(f)));
+        d3.geoContains(p, centroidOf(f)));
     const vals = p.postcodes
         .map(f=>pc4ByCode.get(codeOf(f)).total)
         .filter(t=>t>=0);
