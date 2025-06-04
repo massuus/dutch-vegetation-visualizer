@@ -177,6 +177,7 @@ function drawProvinces(){
   rankPanel.classed('hidden',false);
 
   projection.fitExtent([[20,20],[W-20,H-20]], provinceGeo);
+  path.projection(projection);             // ensure path sync
   svg.call(zoom.transform, d3.zoomIdentity); // reset zoom state
   updateTiles();                // align tiles right away
 
@@ -222,6 +223,7 @@ function zoomProvince(prov){
 
   const keep = prov.postcodes;              // pre-cached array
   projection.fitExtent([[20,20],[W-20,H-20]], {type:'FeatureCollection',features:keep});
+  path.projection(projection);             // ensure path sync
   svg.call(zoom.transform, d3.zoomIdentity); // reset zoom state
   updateTiles();
 
