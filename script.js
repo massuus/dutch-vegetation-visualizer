@@ -170,6 +170,7 @@ function drawProvinces(){
 
   projection.fitExtent([[20,20],[W-20,H-20]], provinceGeo);
   updateTiles();                // align tiles right away
+  svg.call(zoom.transform, projTransform());
 
   mapLayer.html('')
     .selectAll('path')
@@ -214,6 +215,7 @@ function zoomProvince(prov){
   const keep = prov.postcodes;              // pre-cached array
   projection.fitExtent([[20,20],[W-20,H-20]], {type:'FeatureCollection',features:keep});
   updateTiles();
+  svg.call(zoom.transform, projTransform());
 
   mapLayer.html('')
     .selectAll('path')
@@ -285,7 +287,15 @@ Promise.all([
   /* vegetation map */
   veg.forEach(r=>vegMap.set(r.postcode.toString(), r));
 
-  /* postcode registry */
+  /* province registry */
+  const provByCode = new Map();
+  provGeo.features.forEach(p=>{
+    p.postcodes = [];
+    const code = +p.properties.statcode.slice(2);
+    provByCode.set(code, p);
+  });
+
+  /* postcode registry + attach to provinces */
   pc4Geo.features.forEach(f=>{
     const code = codeOf(f);
     const v    = vegMap.get(code);
@@ -295,12 +305,13 @@ Promise.all([
       total: v ? sumPct(v) : -1,
       feature: f
     });
+
+    const prov = provByCode.get(+f.properties.prov_code);
+    if(prov) prov.postcodes.push(f);
   });
 
-  /* attach postcodes to provinces + compute avg */
+  /* compute province averages */
   provGeo.features.forEach(p=>{
-    p.postcodes = pc4Geo.features.filter(f=>
-        d3.geoContains(p,d3.geoCentroid(f)));
     const vals = p.postcodes
         .map(f=>pc4ByCode.get(codeOf(f)).total)
         .filter(t=>t>=0);
