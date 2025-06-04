@@ -38,6 +38,8 @@ let pc4ByCode = new Map();     // pc4 -> {code,total,v,feature}
 let provinceGeo, postcodeGeo;
 let currentProvince = null;
 
+const MAX_BBOX_SIZE = 0.02;     // deg² → filter spurious pc4 shapes
+
 /* ------------ PROJECTION / PATH ------------------------------------- */
 const projection = d3.geoMercator();
 const path       = d3.geoPath().projection(projection);
@@ -307,6 +309,10 @@ Promise.all([
 
   /* postcode registry + attach to provinces */
   pc4Geo.features.forEach(f=>{
+    const b = d3.geoBounds(f);
+    const area = (b[1][0]-b[0][0]) * (b[1][1]-b[0][1]);
+    if(area > MAX_BBOX_SIZE) return;      // skip bogus shapes
+
     const code = codeOf(f);
     const v    = vegMap.get(code);
     pc4ByCode.set(code,{
@@ -317,7 +323,14 @@ Promise.all([
     });
 
     const prov = provByCode.get(+f.properties.prov_code);
-    if(prov) prov.postcodes.push(f);
+    if(prov) {
+      prov.postcodes.push(f);
+    } else {
+      const c = d3.geoCentroid(f);
+      provGeo.features.find(p=>{
+        if(d3.geoContains(p,c)) { p.postcodes.push(f); return true; }
+      });
+    }
   });
 
   /* compute province averages */
