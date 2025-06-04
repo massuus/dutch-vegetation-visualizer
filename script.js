@@ -27,7 +27,8 @@ const zoom = d3.zoom()
   .touchable(()=>false)
   .on('zoom', e=>{
      mapLayer.attr('transform', e.transform);
-     updateTiles(e.transform.multiply(projTransform()));
+     const m = mergeTransforms(e.transform, projTransform());
+     updateTiles(m);
   });
 svg.call(zoom);
 
@@ -46,6 +47,13 @@ function projTransform(){
   const k          = projection.scale() * 2 * Math.PI;
   const [tx,ty]    = projection.translate();
   return d3.zoomIdentity.translate(tx,ty).scale(k);
+}
+
+/* multiply two zoom transforms */
+function mergeTransforms(a,b){
+  return d3.zoomIdentity
+          .translate(a.x + a.k*b.x, a.y + a.k*b.y)
+          .scale(a.k*b.k);
 }
 
 /* ------------ COLOUR SCALES ----------------------------------------- */
