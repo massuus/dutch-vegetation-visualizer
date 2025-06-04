@@ -38,7 +38,9 @@ let pc4ByCode = new Map();     // pc4 -> {code,total,v,feature}
 let provinceGeo, postcodeGeo;
 let currentProvince = null;
 
-const MAX_BBOX_SIZE = 0.02;     // deg² → filter spurious pc4 shapes
+// Skip obviously wrong postcode shapes with an enormous bounding box.
+// 0.5 deg² is well above the largest valid pc4 geometry (~0.04 deg²).
+const MAX_BBOX_SIZE = 0.5;
 
 /* ------------ PROJECTION / PATH ------------------------------------- */
 const projection = d3.geoMercator();
