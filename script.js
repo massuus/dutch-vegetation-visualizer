@@ -27,7 +27,7 @@ const zoom = d3.zoom()
   .touchable(()=>false)
   .on('zoom', e=>{
      mapLayer.attr('transform', e.transform);
-     updateTiles(e.transform);
+     updateTiles(e.transform.multiply(projTransform()));
   });
 svg.call(zoom);
 
@@ -170,7 +170,6 @@ function drawProvinces(){
 
   projection.fitExtent([[20,20],[W-20,H-20]], provinceGeo);
   updateTiles();                // align tiles right away
-  svg.call(zoom.transform, projTransform());
 
   mapLayer.html('')
     .selectAll('path')
@@ -215,7 +214,6 @@ function zoomProvince(prov){
   const keep = prov.postcodes;              // pre-cached array
   projection.fitExtent([[20,20],[W-20,H-20]], {type:'FeatureCollection',features:keep});
   updateTiles();
-  svg.call(zoom.transform, projTransform());
 
   mapLayer.html('')
     .selectAll('path')
