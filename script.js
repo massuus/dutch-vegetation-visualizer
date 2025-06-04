@@ -38,9 +38,6 @@ let pc4ByCode = new Map();     // pc4 -> {code,total,v,feature}
 let provinceGeo, postcodeGeo;
 let currentProvince = null;
 
-// Skip obviously wrong postcode shapes with an enormous bounding box.
-// 0.5 deg² is well above the largest valid pc4 geometry (~0.04 deg²).
-const MAX_BBOX_SIZE = 0.5;
 
 /* ------------ PROJECTION / PATH ------------------------------------- */
 const projection = d3.geoMercator();
@@ -301,20 +298,8 @@ Promise.all([
   /* vegetation map */
   veg.forEach(r=>vegMap.set(r.postcode.toString(), r));
 
-  /* province registry */
-  const provByCode = new Map();
-  provGeo.features.forEach(p=>{
-    p.postcodes = [];
-    const code = +p.properties.statcode.slice(2);
-    provByCode.set(code, p);
-  });
-
-  /* postcode registry + attach to provinces */
+  /* postcode registry */
   pc4Geo.features.forEach(f=>{
-    const b = d3.geoBounds(f);
-    const area = Math.abs((b[1][0]-b[0][0]) * (b[1][1]-b[0][1]));
-    if(area > MAX_BBOX_SIZE || !isFinite(area)) return;  // skip bogus shapes
-
     const code = codeOf(f);
     const v    = vegMap.get(code);
     pc4ByCode.set(code,{
@@ -323,20 +308,12 @@ Promise.all([
       total: v ? sumPct(v) : -1,
       feature: f
     });
-
-    const prov = provByCode.get(+f.properties.prov_code);
-    if(prov) {
-      prov.postcodes.push(f);
-    } else {
-      const c = d3.geoCentroid(f);
-      provGeo.features.find(p=>{
-        if(d3.geoContains(p,c)) { p.postcodes.push(f); return true; }
-      });
-    }
   });
 
-  /* compute province averages */
+  /* attach postcodes to provinces + compute avg */
   provGeo.features.forEach(p=>{
+    p.postcodes = pc4Geo.features.filter(f=>
+        d3.geoContains(p,d3.geoCentroid(f)));
     const vals = p.postcodes
         .map(f=>pc4ByCode.get(codeOf(f)).total)
         .filter(t=>t>=0);
