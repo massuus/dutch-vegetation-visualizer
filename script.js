@@ -60,33 +60,6 @@ function mergeTransforms(a,b){
           .scale(a.k*b.k);
 }
 
-/* simple geometry bounds */
-function boundsOf(f){
-  let minX=Infinity,minY=Infinity,maxX=-Infinity,maxY=-Infinity;
-  (function walk(c){
-    if(typeof c[0]==='number'){
-      for(let i=0;i<c.length;i+=2){
-        const x=c[i], y=c[i+1];
-        if(x<minX) minX=x; if(x>maxX) maxX=x;
-        if(y<minY) minY=y; if(y>maxY) maxY=y;
-      }
-    } else c.forEach(walk);
-  })(f.geometry.coordinates);
-  return [[minX,minY],[maxX,maxY]];
-}
-
-/* rough centroid using average of coords */
-function centroidOf(f){
-  let sumX=0,sumY=0,count=0;
-  (function walk(c){
-    if(typeof c[0]==='number'){
-      for(let i=0;i<c.length;i+=2){
-        sumX+=c[i]; sumY+=c[i+1]; count++; }
-    } else c.forEach(walk);
-  })(f.geometry.coordinates);
-  return [sumX/count,sumY/count];
-}
-
 /* ------------ COLOUR SCALES ----------------------------------------- */
 const vegColor = p => d3.interpolateRdYlGn(
   Math.pow(Math.max(0,Math.min(100,p))/100, gamma)
@@ -299,9 +272,9 @@ function handleRankClick(code){
 
   /* ensure right province view */
   if(!currentProvince ||
-     !d3.geoContains(currentProvince, centroidOf(d.feature))){
+     !d3.geoContains(currentProvince, d3.geoCentroid(d.feature))){
     const prov = provinceGeo.features.find(p=>
-        d3.geoContains(p, centroidOf(d.feature)));
+        d3.geoContains(p, d3.geoCentroid(d.feature)));
     if(prov) zoomProvince(prov);
   }
 
@@ -337,7 +310,7 @@ Promise.all([
 
   /* postcode registry + link to province */
   pc4Geo.features.forEach(f=>{
-    const b = boundsOf(f);
+    const b = d3.geoBounds(f);
     const area = Math.abs((b[1][0]-b[0][0])*(b[1][1]-b[0][1]));
     if(!isFinite(area) || area > MAX_BBOX_SIZE) return;  // skip bogus shapes
 
@@ -354,7 +327,7 @@ Promise.all([
     if(prov){
       prov.postcodes.push(f);
     }else{
-      const c = centroidOf(f);
+      const c = d3.geoCentroid(f);
       provGeo.features.find(p=>{
         if(d3.geoContains(p,c)) { p.postcodes.push(f); return true; }
       });
