@@ -301,14 +301,7 @@ Promise.all([
   /* vegetation map */
   veg.forEach(r=>vegMap.set(r.postcode.toString(), r));
 
-  /* province registry */
-  const provByCode = new Map();
-  provGeo.features.forEach(p=>{
-    p.postcodes = [];
-    provByCode.set(+p.properties.prov_code, p);
-  });
-
-  /* postcode registry + link to province */
+  /* postcode registry */
   pc4Geo.features.forEach(f=>{
     const b = d3.geoBounds(f);
     const area = Math.abs((b[1][0]-b[0][0])*(b[1][1]-b[0][1]));
@@ -323,19 +316,12 @@ Promise.all([
       feature: f
     });
 
-    const prov = provByCode.get(+f.properties.prov_code);
-    if(prov){
-      prov.postcodes.push(f);
-    }else{
-      const c = d3.geoCentroid(f);
-      provGeo.features.find(p=>{
-        if(d3.geoContains(p,c)) { p.postcodes.push(f); return true; }
-      });
-    }
   });
 
   /* compute averages */
   provGeo.features.forEach(p=>{
+    p.postcodes = pc4Geo.features.filter(f=>
+        d3.geoContains(p, d3.geoCentroid(f)));
     const vals = p.postcodes
         .map(f=>pc4ByCode.get(codeOf(f)).total)
         .filter(t=>t>=0);
