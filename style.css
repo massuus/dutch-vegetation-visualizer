@@ -19,11 +19,20 @@ h1 {
 /* ────────────────────────────
    Map Styling
    ──────────────────────────── */
-svg {
-  border: 1px solid #ccc;
-  background: #fff;
-  margin: 2rem 0;
-}
+  svg {
+    border: 1px solid #ccc;
+    background: #fff;
+    margin: 2rem 0;
+  }
+
+  /* Map attribution */
+  #map-attribution {
+    font-size: 0.75rem;
+    color: #555;
+    margin-top: -1rem;
+    margin-bottom: 1rem;
+    text-align: center;
+  }
 
 /* ────────────────────────────
    Rank Panel Styling
