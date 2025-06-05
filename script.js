@@ -89,7 +89,7 @@ function showBack(){
         currentProvince=null;
         drawProvinces();
         svg.transition().duration(500)
-           .call(zoom.transform, d3.zoomIdentity);
+           .call(zoom.transform, projTransform());
       });
 }
 function hideBack(){ uiLayer.selectAll('text.back').remove(); }
@@ -146,6 +146,7 @@ function drawProvinces(){
   rankPanel.classed('hidden',false);
 
   projection.fitExtent([[20,20],[W-20,H-20]], provinceGeo);
+  svg.call(zoom.transform, projTransform()); // reset zoom to projection
   updateTiles();                // align tiles right away
 
   mapLayer.html('')
@@ -190,6 +191,7 @@ function zoomProvince(prov){
 
   const keep = prov.postcodes;              // pre-cached array
   projection.fitExtent([[20,20],[W-20,H-20]], {type:'FeatureCollection',features:keep});
+  svg.call(zoom.transform, projTransform()); // reset zoom to projection
   updateTiles();
 
   mapLayer.html('')
