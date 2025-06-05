@@ -38,10 +38,6 @@ let pc4ByCode = new Map();     // pc4 -> {code,total,v,feature}
 let provinceGeo, postcodeGeo;
 let currentProvince = null;
 
-/* filter threshold for bogus postcode shapes */
-const MAX_BBOX_SIZE = 0.5;    // deg², well above any real pc4 polygon
-
-
 /* ------------ PROJECTION / PATH ------------------------------------- */
 const projection = d3.geoMercator();
 const path       = d3.geoPath().projection(projection);
@@ -53,25 +49,11 @@ function projTransform(){
   return d3.zoomIdentity.translate(tx,ty).scale(k);
 }
 
-/* multiply two zoom transforms */
+/* helper to combine zoom transform with projection */
 function mergeTransforms(a,b){
   return d3.zoomIdentity
           .translate(a.x + a.k*b.x, a.y + a.k*b.y)
           .scale(a.k*b.k);
-}
-
-/* crude bounds for features */
-function boundsOf(f){
-  let xmin=Infinity,ymin=Infinity,xmax=-Infinity,ymax=-Infinity;
-  (function walk(c){if(Array.isArray(c[0])) c.forEach(walk); else{const[x,y]=c;if(x<xmin)xmin=x;if(y<ymin)ymin=y;if(x>xmax)xmax=x;if(y>ymax)ymax=y;}})(f.geometry.coordinates);
-  return [[xmin,ymin],[xmax,ymax]];
-}
-
-/* centroid via simple average */
-function centroidOf(f){
-  let sx=0,sy=0,n=0;
-  (function walk(c){if(Array.isArray(c[0])) c.forEach(walk); else{sx+=c[0];sy+=c[1];n++;}})(f.geometry.coordinates);
-  return [sx/n, sy/n];
 }
 
 /* ------------ COLOUR SCALES ----------------------------------------- */
@@ -195,8 +177,6 @@ function drawProvinces(){
   rankPanel.classed('hidden',false);
 
   projection.fitExtent([[20,20],[W-20,H-20]], provinceGeo);
-  path.projection(projection);             // ensure path sync
-  svg.call(zoom.transform, d3.zoomIdentity); // reset zoom state
   updateTiles();                // align tiles right away
 
   mapLayer.html('')
@@ -241,8 +221,6 @@ function zoomProvince(prov){
 
   const keep = prov.postcodes;              // pre-cached array
   projection.fitExtent([[20,20],[W-20,H-20]], {type:'FeatureCollection',features:keep});
-  path.projection(projection);             // ensure path sync
-  svg.call(zoom.transform, d3.zoomIdentity); // reset zoom state
   updateTiles();
 
   mapLayer.html('')
@@ -286,9 +264,9 @@ function handleRankClick(code){
 
   /* ensure right province view */
   if(!currentProvince ||
-     !d3.geoContains(currentProvince, centroidOf(d.feature))){
+     !d3.geoContains(currentProvince,d3.geoCentroid(d.feature))){
     const prov = provinceGeo.features.find(p=>
-        d3.geoContains(p, centroidOf(d.feature)));
+        d3.geoContains(p,d3.geoCentroid(d.feature)));
     if(prov) zoomProvince(prov);
   }
 
@@ -316,11 +294,7 @@ Promise.all([
   veg.forEach(r=>vegMap.set(r.postcode.toString(), r));
 
   /* postcode registry */
-  pc4Geo.features = pc4Geo.features.filter(f=>{
-    const b = boundsOf(f);
-    const area = Math.abs((b[1][0]-b[0][0])*(b[1][1]-b[0][1]));
-    if(!isFinite(area) || area > MAX_BBOX_SIZE) return false;  // skip bogus shapes
-
+  pc4Geo.features.forEach(f=>{
     const code = codeOf(f);
     const v    = vegMap.get(code);
     pc4ByCode.set(code,{
@@ -329,14 +303,12 @@ Promise.all([
       total: v ? sumPct(v) : -1,
       feature: f
     });
-  return true;
-
   });
 
-  /* compute averages */
+  /* attach postcodes to provinces + compute avg */
   provGeo.features.forEach(p=>{
     p.postcodes = pc4Geo.features.filter(f=>
-        d3.geoContains(p, centroidOf(f)));
+        d3.geoContains(p,d3.geoCentroid(f)));
     const vals = p.postcodes
         .map(f=>pc4ByCode.get(codeOf(f)).total)
         .filter(t=>t>=0);
