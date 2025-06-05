@@ -1,143 +1,149 @@
 /* ────────────────────────────
-   Page & layout
+   General Page Layout
    ──────────────────────────── */
-body{
-  margin:0 2rem;
-  background:#f4f4f4;
-  font-family:system-ui, sans-serif;
+body {
+  margin: 0 2rem;
+  background: #f4f4f4;
+  font-family: system-ui, sans-serif;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2rem;
+  justify-content: center;
 }
 
-h1{ margin-top:1.5rem; }
-
-/* sliders */
-#controls label{
-  display:block;
-  margin:1rem 0;
+h1 {
+  width: 100%;
+  margin-top: 1.5rem;
 }
 
-/* map frame */
-svg{
-  border:1px solid #ccc;
-  background:#fff;
-  margin:2rem 0;
+/* ────────────────────────────
+   Map Styling
+   ──────────────────────────── */
+svg {
+  border: 1px solid #ccc;
+  background: #fff;
+  margin: 2rem 0;
 }
 
-/* read-out */
-#results{
-  margin-top:2rem;
-  font-size:1.2rem;
+/* ────────────────────────────
+   Rank Panel Styling
+   ──────────────────────────── */
+#rank-panel {
+  width: 250px;
+  background: #fefefe;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  padding: 12px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+  font-size: 13px;
 }
+#rank-panel.hidden { display: none; }
+#rank-panel h3 { margin: 0 0 6px; font-size: 16px; }
+#rank-panel strong { display: block; margin: 8px 0 4px; }
+#rank-panel ol { margin: 0; padding-left: 18px; }
+#rank-panel li {
+  cursor: pointer;
+  line-height: 1.4;
+}
+#rank-panel li:hover { text-decoration: underline; }
+#rank-panel li span.v { float: right; color: #555; }
+#rank-panel li.nod { color: #888; }
 
 /* ────────────────────────────
    Tooltip
    ──────────────────────────── */
-.tooltip{
-  position:absolute;
-  padding:8px 10px;
-  background:#fff;
-  border:1px solid #ccc;
-  border-radius:4px;
-  box-shadow:0 2px 5px rgba(0,0,0,.15);
-  font-size:13px;
-  pointer-events:none;
-  transition:opacity .2s;
+.tooltip {
+  position: absolute;
+  padding: 10px 12px;
+  background: rgba(255, 255, 255, 0.95);
+  border: 1px solid #2e7d32;
+  border-radius: 6px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+  font-size: 13px;
+  pointer-events: none;
+  transition: opacity 0.2s;
+  color: #222;
+  max-width: 220px;
+  line-height: 1.4;
 }
-
-/* ────────────────────────────
-   Loader overlay
-   ──────────────────────────── */
-.loader{
-  position:fixed;
-  inset:0;
-  display:flex;
-  flex-direction:column;
-  align-items:center;
-  justify-content:center;
-  background:rgba(255,255,255,.8);
-  z-index:1000;
-}
-.loader.hidden{ display:none; }
-
-.loader .spinner{
-  width:64px; height:64px;
-  border:8px solid #ccc;
-  border-top-color:#2e7d32;
-  border-radius:50%;
-  animation:spin 1s linear infinite;
-  margin-bottom:12px;
-}
-@keyframes spin{ to{ transform:rotate(360deg);} }
-
-.loader p{
-  margin:0;              /* no double spacing */
-  font-size:1rem;
-  color:#333;
-}
-
-/* ────────────────────────────
-   Rank panel ( #rank-panel )
-   ──────────────────────────── */
-#rank-panel{
-  position:fixed;
-  top:90px; right:25px;
-  width:200px;
-  max-height:calc(100vh - 110px);
-  overflow:auto;
-
-  background:#fff;
-  border:1px solid #ccc;
-  border-radius:6px;
-  padding:12px;
-
-  box-shadow:0 2px 8px rgba(0,0,0,.15);
-  font-size:13px;
-}
-#rank-panel.hidden{ display:none; }
-
-#rank-panel h3{
-  margin:0 0 6px;
-  font-size:16px;
-}
-#rank-panel strong{
-  display:block;
-  margin:8px 0 4px;
-}
-#rank-panel ol{
-  margin:0;
-  padding-left:18px;
-}
-#rank-panel li{
-  cursor:pointer;
-  line-height:1.4;
-}
-#rank-panel li:hover{ text-decoration:underline; }
-#rank-panel li span.v{ float:right; color:#555; }
-#rank-panel li.nod   { color:#888; }   /* “no-data” rows */
-
-/* ────────────────────────────
-   Svg-inside UI
-   ( legend group + back text )
-   ──────────────────────────── */
-text.back{
-  fill:blue;
-  font-size:14px;
-  cursor:pointer;
-  user-select:none;
-}
-
-.legend rect,
-.legend .bar{             /* gradient bar inside <rect> */
-  stroke:#666;
-  stroke-width:1;
-  rx:2;
-}
-
-.legend text{ font-size:12px; }
 
 /* ────────────────────────────
    Highlighted postcode path
    ──────────────────────────── */
-.tile-layer image{pointer-events:none;}  /* raster should not block clicks */
-.highlight{stroke:#000!important;stroke-width:2!important;}
+.tile-layer image { pointer-events: none; }
+.highlight {
+  stroke: #ff9800 !important;
+  stroke-width: 3 !important;
+  fill-opacity: 1 !important;
+  filter: drop-shadow(0 0 4px #ff9800);
+}
 
+/* ────────────────────────────
+   Back Button in SVG
+   ──────────────────────────── */
+text.back-button {
+  font-size: 14px;
+  font-weight: bold;
+  fill: white;
+  user-select: none;
+  pointer-events: all;
+}
+.back-button-bg {
+  fill: #2196f3;
+  rx: 4;
+  ry: 4;
+  cursor: pointer;
+}
 
+/* ────────────────────────────
+   Legend
+   ──────────────────────────── */
+.legend {
+  background: rgba(255, 255, 255, 0.95);
+  padding: 10px;
+  border-radius: 6px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+}
+.legend text {
+  font-size: 12px;
+}
+.legend rect,
+.legend .bar {
+  stroke: #666;
+  stroke-width: 1;
+  rx: 2;
+}
+
+/* ────────────────────────────
+   Loader
+   ──────────────────────────── */
+.loader {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.8);
+  z-index: 1000;
+}
+.loader.hidden {
+  display: none;
+}
+.loader .spinner {
+  width: 64px;
+  height: 64px;
+  border: 8px solid #ccc;
+  border-top-color: #2e7d32;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-bottom: 12px;
+}
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+.loader p {
+  margin: 0;
+  font-size: 1rem;
+  color: #333;
+}
