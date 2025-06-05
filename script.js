@@ -5,7 +5,7 @@
    ───────────────────────────────────────────────────────────── */
 
 /* ------------ CONFIG ------------------------------------------------- */
-const GEO_URL  = 'data/pc4.geojson';
+const GEO_URL  = 'data/pc4-simplified.geojson';
 const VEG_URL  = 'data/vegetation.csv';
 const PROV_URL = 'data/provinces.geojson';
 
@@ -27,7 +27,8 @@ const zoom = d3.zoom()
   .touchable(()=>false)
   .on('zoom', e=>{
      mapLayer.attr('transform', e.transform);
-     updateTiles(e.transform);
+     const m = mergeTransforms(e.transform, projTransform());
+     updateTiles(m);
   });
 svg.call(zoom);
 
@@ -48,6 +49,13 @@ function projTransform(){
   return d3.zoomIdentity.translate(tx,ty).scale(k);
 }
 
+/* combine zoom and projection transforms */
+function mergeTransforms(a,b){
+  return d3.zoomIdentity
+          .translate(a.x + a.k*b.x, a.y + a.k*b.y)
+          .scale(a.k*b.k);
+}
+
 /* ------------ COLOUR SCALES ----------------------------------------- */
 const vegColor = p => d3.interpolateRdYlGn(
   Math.pow(Math.max(0,Math.min(100,p))/100, gamma)
@@ -58,13 +66,36 @@ const sumPct = v => Math.min(100, v.trees+v.bushes+v.grass);
 const tooltip = d3.select('body').append('div')
   .attr('class','tooltip').style('opacity',0);
 
+/* ------------ UI CONTROLS ------------------------------------------- */
+const controls = {
+  trees:  d3.select('#trees'),
+  bushes: d3.select('#bushes'),
+  grass:  d3.select('#grass')
+};
+
+function updateResults(){
+  const t = +controls.trees.property('value');
+  const b = +controls.bushes.property('value');
+  const g = +controls.grass.property('value');
+
+  d3.select('#pollution').text((100 - (t*0.5 + b*0.3 + g*0.2)).toFixed(1));
+  d3.select('#heat').text((100 - (t*0.4 + b*0.2 + g*0.4)).toFixed(1));
+  d3.select('#biodiversity').text(((t*0.4 + b*0.4 + g*0.2)).toFixed(1));
+}
+
+Object.values(controls).forEach(ctrl =>
+  ctrl.on('input', updateResults)
+);
+updateResults();
+
 /* ------------ LOADER ------------------------------------------------- */
 const loader = d3.select('#loader');
 
 /* ------------ OSM TILE under-lay  ------------------------------------ */
 const tiler = d3.tile().size([W,H]).tileSize(256);
 
-function updateTiles(t = projTransform()){   // default = projection
+function updateTiles(t = mergeTransforms(d3.zoomTransform(svg.node()),
+                                         projTransform())){   // default = projection + zoom
   const tiles = tiler.scale(t.k).translate([t.x,t.y])();
 
   tileLayer
@@ -74,6 +105,7 @@ function updateTiles(t = projTransform()){   // default = projection
     .join('image')
       .attr('xlink:href', d =>
         `https://tile.openstreetmap.org/${d[2]}/${d[0]}/${d[1]}.png`)
+      .attr('crossorigin','anonymous')
       .attr('x',d=>d[0]).attr('y',d=>d[1])
       .attr('width',1).attr('height',1);
 }
