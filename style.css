@@ -61,16 +61,10 @@ h1 {
 
   /* Map attribution */
   #map-attribution {
-    position: absolute;
-    bottom: 8px;
-    right: 8px;
     font-size: 0.75rem;
     color: #555;
-    background: rgba(255, 255, 255, 0.8);
-    padding: 2px 6px;
-    border-radius: 4px;
-    pointer-events: none;
-    z-index: 10;
+    margin-bottom: 4px;
+    text-align: center;
   }
 
   #map-attribution a {
