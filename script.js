@@ -27,8 +27,8 @@ const zoom = d3.zoom()
   .touchable(()=>false)
   .on('zoom', e=>{
      mapLayer.attr('transform', e.transform);
-     const m = mergeTransforms(e.transform, projTransform());
-     updateTiles(m);
+  const m = mergeTransforms(e.transform, projTransform());
+  updateTiles(m);
   });
 svg.call(zoom);
 
@@ -54,6 +54,26 @@ function mergeTransforms(a,b){
   return d3.zoomIdentity
           .translate(a.x + a.k*b.x, a.y + a.k*b.y)
           .scale(a.k*b.k);
+}
+
+/* compute bounding box of any geometry */
+function boundsOf(g){
+  let minX=Infinity, minY=Infinity, maxX=-Infinity, maxY=-Infinity;
+  const walk=c=>{
+    if(typeof c[0]==='number'){
+      const [x,y]=c;
+      if(x<minX)minX=x; if(x>maxX)maxX=x;
+      if(y<minY)minY=y; if(y>maxY)maxY=y;
+    } else c.forEach(walk);
+  };
+  walk(g.type==='Feature'? g.geometry.coordinates : g.coordinates);
+  return [[minX,minY],[maxX,maxY]];
+}
+
+/* centroid from bounding box */
+function centroidOf(g){
+  const b=boundsOf(g);
+  return [(b[0][0]+b[1][0])/2, (b[0][1]+b[1][1])/2];
 }
 
 /* ------------ COLOUR SCALES ----------------------------------------- */
@@ -94,7 +114,8 @@ const loader = d3.select('#loader');
 /* ------------ OSM TILE under-lay  ------------------------------------ */
 const tiler = d3.tile().size([W,H]).tileSize(256);
 
-function updateTiles(t = projTransform()){   // default = projection
+function updateTiles(t = mergeTransforms(d3.zoomTransform(svg.node()),
+                                         projTransform())){   // default = projection + zoom
   const tiles = tiler.scale(t.k).translate([t.x,t.y])();
 
   tileLayer
@@ -264,9 +285,9 @@ function handleRankClick(code){
 
   /* ensure right province view */
   if(!currentProvince ||
-     !d3.geoContains(currentProvince,d3.geoCentroid(d.feature))){
+     !d3.geoContains(currentProvince, centroidOf(d.feature))){
     const prov = provinceGeo.features.find(p=>
-        d3.geoContains(p,d3.geoCentroid(d.feature)));
+        d3.geoContains(p, centroidOf(d.feature)));
     if(prov) zoomProvince(prov);
   }
 
@@ -308,7 +329,7 @@ Promise.all([
   /* attach postcodes to provinces + compute avg */
   provGeo.features.forEach(p=>{
     p.postcodes = pc4Geo.features.filter(f=>
-        d3.geoContains(p,d3.geoCentroid(f)));
+        d3.geoContains(p, centroidOf(f)));
     const vals = p.postcodes
         .map(f=>pc4ByCode.get(codeOf(f)).total)
         .filter(t=>t>=0);
