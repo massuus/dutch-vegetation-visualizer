@@ -43,6 +43,27 @@ const tooltip = d3.select('body').append('div')
 /* ------------ LOADER ------------------------------------------------- */
 const loader = d3.select('#loader');
 
+/* ------------ SEARCH ------------------------------------------------- */
+const searchInput = document.getElementById('postcode-input');
+const searchBtn = document.getElementById('postcode-btn');
+
+function searchPostcode() {
+  if (!searchInput) return;
+  const val = searchInput.value.trim();
+  if (!val) return;
+  const code = val.replace(/\s+/g, '');
+  if (pc4ByCode.has(code)) {
+    handleRankClick(code);
+  } else {
+    alert('Postcode not found');
+  }
+}
+
+if (searchBtn) searchBtn.addEventListener('click', searchPostcode);
+if (searchInput) searchInput.addEventListener('keyup', e => {
+  if (e.key === 'Enter') searchPostcode();
+});
+
 /* ------------ TILE HANDLER ------------------------------------------- */
 const tiler = d3.tile().size([W, H]).tileSize(256);
 
