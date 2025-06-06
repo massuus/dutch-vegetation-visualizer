@@ -2,6 +2,9 @@
 const GEO_URL  = 'data/pc4.geojson';
 const VEG_URL  = 'data/vegetation.csv';
 const PROV_URL = 'data/provinces.geojson';
+const DB_NAME  = 'VegMapCache';
+const DB_STORE = 'datasets';
+const DB_VER   = 1;
 
 const W = 800, H = 800;
 const gamma = 2;
@@ -82,30 +85,18 @@ function updateTiles(t = projTransform()) {
 /* ------------ BACK BUTTON -------------------------------------------- */
 function showBack() {
   const group = uiLayer.selectAll('g.back').data([null]).join('g').attr('class', 'back');
-
   group.selectAll('*').remove();
-
   const text = '← Back to provinces';
-  const textElem = group.append('text')
-    .attr('x', 20)
-    .attr('y', 30)
-    .text(text)
-    .attr('class', 'back-button');
-
+  const textElem = group.append('text').attr('x', 20).attr('y', 30).text(text).attr('class', 'back-button');
   const bbox = textElem.node().getBBox();
-
   group.insert('rect', 'text')
-    .attr('x', bbox.x - 8)
-    .attr('y', bbox.y - 4)
-    .attr('width', bbox.width + 16)
-    .attr('height', bbox.height + 8)
+    .attr('x', bbox.x - 8).attr('y', bbox.y - 4)
+    .attr('width', bbox.width + 16).attr('height', bbox.height + 8)
     .attr('class', 'back-button-bg');
-
-  group.style('cursor', 'pointer')
-    .on('click', () => {
-      currentProvince = null;
-      drawProvinces();
-    });
+  group.style('cursor', 'pointer').on('click', () => {
+    currentProvince = null;
+    drawProvinces();
+  });
 }
 
 function hideBack() {
@@ -115,27 +106,14 @@ function hideBack() {
 /* ------------ LEGEND ------------------------------------------------- */
 function addLegend() {
   if (uiLayer.select('.legend').size()) return;
-
-  const g = uiLayer.append('g')
-    .attr('class', 'legend')
-    .attr('transform', `translate(20, ${H - 45})`);
-
-  const grad = uiLayer.append('defs').append('linearGradient')
-    .attr('id', 'vegGrad')
-    .attr('x1', '0%').attr('y1', '0%')
-    .attr('x2', '100%').attr('y2', '0%');
-
+  const g = uiLayer.append('g').attr('class', 'legend').attr('transform', `translate(20, ${H - 45})`);
+  const grad = uiLayer.append('defs').append('linearGradient').attr('id', 'vegGrad')
+    .attr('x1', '0%').attr('y1', '0%').attr('x2', '100%').attr('y2', '0%');
   grad.selectAll('stop').data([
-    { o: 0, c: '#a50026' },
-    { o: 0.5, c: '#ffffbf' },
-    { o: 1, c: '#006837' }
+    { o: 0, c: '#a50026' }, { o: 0.5, c: '#ffffbf' }, { o: 1, c: '#006837' }
   ]).enter().append('stop')
-    .attr('offset', d => d.o * 100 + '%')
-    .attr('stop-color', d => d.c);
-
-  g.append('rect').attr('width', 180).attr('height', 14)
-    .attr('fill', 'url(#vegGrad)');
-
+    .attr('offset', d => d.o * 100 + '%').attr('stop-color', d => d.c);
+  g.append('rect').attr('width', 180).attr('height', 14).attr('fill', 'url(#vegGrad)');
   g.append('text').attr('x', 0).attr('y', 26).text('0%');
   g.append('text').attr('x', 90).attr('y', 26).attr('text-anchor', 'middle').text('50%');
   g.append('text').attr('x', 180).attr('y', 26).attr('text-anchor', 'end').text('100%');
@@ -148,25 +126,18 @@ const rankPanel = d3.select('#rank-panel');
 function renderRank(list, title) {
   rankPanel.html('').classed('hidden', false);
   rankPanel.append('h3').text(title);
-
   const valid = list.filter(d => d.total >= 0);
   const best = valid.slice(0, 10);
   const worst = valid.slice(-10).reverse();
   const missing = list.filter(d => d.total < 0);
-
   const add = (label, data) => {
     const section = rankPanel.append('div');
     section.append('strong').text(label);
-    section.append('ol').selectAll('li')
-      .data(data)
-      .enter().append('li')
+    section.append('ol').selectAll('li').data(data).enter().append('li')
       .html(d => `${d.code}<span class="v">${d.total >= 0 ? d.total.toFixed(1) + '%' : 'Missing'}</span>`)
       .attr('class', d => d.total < 0 ? 'nod' : null)
-      .on('click', (_, d) => {
-        if (d.total >= 0) handleRankClick(d.code);
-      });
+      .on('click', (_, d) => { if (d.total >= 0) handleRankClick(d.code); });
   };
-
   add('Top 10', best);
   add('Bottom 10', worst);
   if (missing.length > 0) add('No Data', missing);
@@ -177,24 +148,43 @@ function drawProvinces() {
   hideBack();
   rankPanel.classed('hidden', false);
 
+  // Smooth zoom
+  const t0 = projection.translate(), s0 = projection.scale();
   projection.fitExtent([[20, 20], [W - 20, H - 20]], provinceGeo);
-  updateTiles();
+  const t1 = projection.translate(), s1 = projection.scale();
 
-  mapLayer.html('')
-    .selectAll('path')
-    .data(provinceGeo.features)
-    .enter().append('path')
+  d3.transition().duration(750).tween("zoom", () => {
+    const iTranslate = d3.interpolate(t0, t1);
+    const iScale = d3.interpolate(s0, s1);
+    return t => {
+      projection.translate(iTranslate(t)).scale(iScale(t));
+      updateTiles();
+      mapLayer.selectAll('path').attr('d', path);
+    };
+  });
+
+  const paths = mapLayer.selectAll('path')
+    .data(provinceGeo.features, d => d.properties.statnaam);
+
+  paths.exit().remove();
+
+  paths.enter().append('path')
     .attr('class', 'province')
     .attr('d', path)
     .attr('fill', d => vegColor(d.properties.avgVeg || 0))
     .attr('stroke', '#444')
     .attr('stroke-width', 1)
+    .merge(paths)
+    .transition().duration(750).ease(d3.easeCubicInOut)
+    .attr('d', path)
+    .attr('fill', d => vegColor(d.properties.avgVeg || 0));
+
+  mapLayer.selectAll('path')
     .on('mouseover', function (_, d) {
       d3.select(this).attr('stroke-width', 2);
       tooltip.style('opacity', 1).html(`
         <strong>${d.properties.statnaam}</strong><br>
-        Avg vegetation: ${d.properties.avgVeg.toFixed(1)}%
-      `);
+        Avg vegetation: ${d.properties.avgVeg.toFixed(1)}%`);
     })
     .on('mousemove', e => tooltip.style('left', (e.pageX + 10) + 'px').style('top', (e.pageY - 28) + 'px'))
     .on('mouseout', function () {
@@ -213,18 +203,39 @@ function zoomProvince(prov) {
   showBack();
 
   const keep = prov.postcodes;
-  projection.fitExtent([[20, 20], [W - 20, H - 20]], { type: 'FeatureCollection', features: keep });
-  updateTiles();
 
-  mapLayer.html('')
-    .selectAll('path')
-    .data(keep)
-    .enter().append('path')
+  // Smooth zoom
+  const t0 = projection.translate(), s0 = projection.scale();
+  projection.fitExtent([[20, 20], [W - 20, H - 20]], { type: 'FeatureCollection', features: keep });
+  const t1 = projection.translate(), s1 = projection.scale();
+
+  d3.transition().duration(750).tween("zoom", () => {
+    const iTranslate = d3.interpolate(t0, t1);
+    const iScale = d3.interpolate(s0, s1);
+    return t => {
+      projection.translate(iTranslate(t)).scale(iScale(t));
+      updateTiles();
+      mapLayer.selectAll('path').attr('d', path);
+    };
+  });
+
+  const paths = mapLayer.selectAll('path')
+    .data(keep, f => codeOf(f));
+
+  paths.exit().remove();
+
+  paths.enter().append('path')
     .attr('class', 'pc4')
     .attr('d', path)
     .attr('fill', f => vegColor(pc4ByCode.get(codeOf(f)).total))
     .attr('stroke', '#fff')
     .attr('stroke-width', 0.4)
+    .merge(paths)
+    .transition().duration(750).ease(d3.easeCubicInOut)
+    .attr('d', path)
+    .attr('fill', f => vegColor(pc4ByCode.get(codeOf(f)).total));
+
+  mapLayer.selectAll('path.pc4')
     .on('mouseover', pc4Over)
     .on('mousemove', e => tooltip.style('left', (e.pageX + 10) + 'px').style('top', (e.pageY - 28) + 'px'))
     .on('mouseout', pc4Out);
@@ -247,8 +258,7 @@ function pc4Over(e, f) {
   tooltip.style('opacity', 1).html(`
     <strong>Postcode:</strong> ${d.code}<br>
     🌳 ${d.v.trees}% &nbsp; 🌿 ${d.v.bushes}% &nbsp; 🌾 ${d.v.grass}%<br>
-    🌱 <em>Total:</em> ${d.total.toFixed(1)}%
-  `);
+    🌱 <em>Total:</em> ${d.total.toFixed(1)}%`);
 }
 
 function pc4Out() {
@@ -259,72 +269,128 @@ function pc4Out() {
 function handleRankClick(code) {
   const d = pc4ByCode.get(code);
   if (!d) return;
-
   const f = d.feature;
   const targetCentroid = d3.geoCentroid(f);
-
-  // Find and zoom to correct province if not already in view
-  const prov = provinceGeo.features.find(p =>
-    d3.geoContains(p, targetCentroid));
-
-  if (!currentProvince || currentProvince !== prov) {
-    zoomProvince(prov);
-  }
-
-  // Wait until province view has rendered
+  const prov = provinceGeo.features.find(p => d3.geoContains(p, targetCentroid));
+  if (!currentProvince || currentProvince !== prov) zoomProvince(prov);
   setTimeout(() => {
-    // Highlight the selected postcode
     mapLayer.selectAll('.highlight').classed('highlight', false);
-
-    const selection = mapLayer.selectAll('path.pc4')
+    mapLayer.selectAll('path.pc4')
       .filter(f => codeOf(f) === code)
       .classed('highlight', true)
       .each(function () {
-        // Move to front
         this.parentNode.appendChild(this);
-
-        // Simulate tooltip
         const bounds = this.getBoundingClientRect();
         tooltip.style('opacity', 1).html(`
           <strong>Postcode:</strong> ${d.code}<br>
           🌳 ${d.v.trees}% &nbsp; 🌿 ${d.v.bushes}% &nbsp; 🌾 ${d.v.grass}%<br>
-          🌱 <em>Total:</em> ${d.total.toFixed(1)}%
-        `)
-        .style('left', (bounds.x + bounds.width / 2 + 10) + 'px')
-        .style('top', (bounds.y + bounds.height / 2 - 28) + 'px');
+          🌱 <em>Total:</em> ${d.total.toFixed(1)}%`)
+          .style('left', (bounds.x + bounds.width / 2 + 10) + 'px')
+          .style('top', (bounds.y + bounds.height / 2 - 28) + 'px');
       });
-  }, 250); // small delay for zoom/render
+  }, 250);
 }
 
+/* ------------ INDEXEDDB CACHING LOGIC ------------------------------- */
+function openDB() {
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open(DB_NAME, DB_VER);
+    req.onupgradeneeded = e => {
+      const db = e.target.result;
+      db.createObjectStore(DB_STORE);
+    };
+    req.onsuccess = e => resolve(e.target.result);
+    req.onerror = () => reject(req.error);
+  });
+}
 
-/* ------------ DATA LOAD --------------------------------------------- */
-Promise.all([
-  d3.json(PROV_URL),
-  d3.json(GEO_URL),
-  d3.dsv(';', VEG_URL, d => ({
-    postcode: d.Postcode,
-    trees: +d.PercentageTrees.replace(',', '.'),
-    bushes: +d.PercentageBushes.replace(',', '.'),
-    grass: +d.PercentageGrass.replace(',', '.')
-  }))
-]).then(([provGeo, pc4Geo, veg]) => {
-  veg.forEach(r => vegMap.set(r.postcode.toString(), r));
+async function getCachedData(key) {
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(DB_STORE, 'readonly');
+    const store = tx.objectStore(DB_STORE);
+    const req = store.get(key);
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+}
 
-  pc4Geo.features.forEach(f => {
-    const code = codeOf(f);
-    const v = vegMap.get(code);
-    pc4ByCode.set(code, {
+async function setCachedData(key, value) {
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(DB_STORE, 'readwrite');
+    const store = tx.objectStore(DB_STORE);
+    const req = store.put(value, key);
+    req.onsuccess = () => resolve();
+    req.onerror = () => reject(req.error);
+  });
+}
+
+async function loadAndCacheData() {
+  let final = await getCachedData('finalData');
+  if (final) {
+    console.log("✅ Loaded preprocessed data from IndexedDB");
+    return final;
+  }
+
+  console.log("⬇ Fetching and preprocessing fresh data...");
+  const [prov, pc4, veg] = await Promise.all([
+    d3.json(PROV_URL),
+    d3.json(GEO_URL),
+    d3.dsv(';', VEG_URL, d => ({
+      postcode: d.Postcode,
+      trees: +d.PercentageTrees.replace(',', '.'),
+      bushes: +d.PercentageBushes.replace(',', '.'),
+      grass: +d.PercentageGrass.replace(',', '.')
+    }))
+  ]);
+
+  // Preprocess like before:
+  const vegMapObj = {};
+  veg.forEach(r => vegMapObj[r.postcode.toString()] = r);
+
+  const pc4ByCodeObj = {};
+  pc4.features.forEach(f => {
+    const code = f.properties.pc4_code?.toString() || f.properties.postcode;
+    const v = vegMapObj[code];
+    pc4ByCodeObj[code] = {
       code,
       v: v || { trees: 0, bushes: 0, grass: 0 },
-      total: v ? sumPct(v) : -1,
+      total: v ? Math.min(100, v.trees + v.bushes + v.grass) : -1,
       feature: f
-    });
+    };
   });
 
-  provGeo.features.forEach(p => {
-    p.postcodes = pc4Geo.features.filter(f => d3.geoContains(p, d3.geoCentroid(f)));
-    const vals = p.postcodes.map(f => pc4ByCode.get(codeOf(f)).total).filter(t => t >= 0);
-    p.properties.avgVeg = vals.length ? d3.mean(vals) : 0;
+  prov.features.forEach(p => {
+    const keep = pc4.features.filter(f => d3.geoContains(p, d3.geoCentroid(f)));
+    p.postcodes = keep;
+    const totals = keep.map(f => {
+      const code = f.properties.pc4_code?.toString() || f.properties.postcode;
+      return pc4ByCodeObj[code]?.total ?? -1;
+    }).filter(t => t >= 0);
+    p.properties.avgVeg = totals.length ? d3.mean(totals) : 0;
+  });
+
+  const result = {
+    provinceGeo: prov,
+    postcodeGeo: pc4,
+    pc4ByCode: pc4ByCodeObj
+  };
+
+  await setCachedData('finalData', result);
+  return result;
+}
+
+/* ------------ INIT --------------------------------------------------- */
+(async function init() {
+  loader.classed('hidden', false);
+
+  const { provinceGeo: provGeo, postcodeGeo: pc4Geo, pc4ByCode: rawPc4Map } = await loadAndCacheData();
+
+  // Convert objects back to Maps
+  Object.entries(rawPc4Map).forEach(([code, d]) => {
+    d.feature = d.feature; // still GeoJSON
+    pc4ByCode.set(code, d);
   });
 
   provinceGeo = provGeo;
@@ -332,9 +398,9 @@ Promise.all([
 
   addLegend();
   drawProvinces();
-}).then(() => {
   loader.classed('hidden', true);
-}).catch(console.error);
+})();
+
 
 document.body.addEventListener('click', e => {
   if (!e.target.closest('li') && !e.target.closest('svg')) {

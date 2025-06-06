@@ -3,7 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>🌱 GreenBalance Simulator</title>
+  <title>Vegitasion Map Netherlands</title>
+  <link rel="icon" href="https://cdn-icons-png.flaticon.com/512/2303/2303665.png" />
 
   <link rel="stylesheet" href="style.css" />
   <script src="https://d3js.org/d3.v7.min.js"></script>
@@ -11,15 +12,14 @@
 </head>
 <body>
 
-  <h1>🌱 GreenBalance Simulator</h1>
-
-  <div id="search-box">
-    <input type="text" id="postcode-input" placeholder="Search postcode" />
-    <button id="postcode-btn">Go</button>
-  </div>
+  <h1>🌱 Vegitasion Map Netherlands</h1>
 
   <!-- Map -->
   <div id="map-wrapper">
+    <div id="search-box">
+      <input type="text" id="postcode-input" placeholder="Search postcode, ex: 1234" maxlength="4" minlength="4" pattern="\d{4}" inputmode="numeric" />
+      <button id="postcode-btn">Go</button>
+    </div>
     <p id="map-attribution">Map data © <a href="https://www.openstreetmap.org/">OpenStreetMap</a> contributors</p>
     <svg id="map" width="800" height="800"></svg>
   </div>
