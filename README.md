@@ -10,7 +10,6 @@ Interactive web application for exploring how trees, bushes and grass are distri
 
 ---
 
-
 ## Features
 
 | Category                     | Description                                                                         |
@@ -22,6 +21,12 @@ Interactive web application for exploring how trees, bushes and grass are distri
 | **Rich tool‑tips**           | Hover shows absolute percentages, total vegetation, balance score & overlap warning |
 | **Tiles + projection**       | OpenStreetMap raster tiles for context; d3‑geo–Mercator projection                  |
 | **Offline cache**            | First‑load fetches are stored in IndexedDB ⇒ subsequent visits load instantly       |
+
+---
+
+## Video demo
+
+[![Watch the video](./Media/Demo.mp4)]
 
 ---
 

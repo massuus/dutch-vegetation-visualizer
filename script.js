@@ -227,7 +227,7 @@ function renderRank(list, title) {
         return `${d.code} – ${gem}<span class="v">${score}</span>`;
       })
       .attr('class', d => d.total < 0 ? 'nod' : null)
-      .on('click', (_, d) => { if (d.total >= 0) handleRankClick(d.code); });
+      .on('click', (_, d) => handleRankClick(d.code));
   };
 
   // Top/bottom show total vegetation, balance shows balance score
