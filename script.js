@@ -51,6 +51,17 @@ function vegColorRGB(v) {
 
 const sumPct = v => v.trees + v.bushes + v.grass;
 
+function provinceFill(d) {
+  return useRgbColor
+    ? vegColorRGB({
+        trees:  d.properties.avgTrees  || 0,
+        bushes: d.properties.avgBushes || 0,
+        grass:  d.properties.avgGrass  || 0
+      })
+    : vegColor(d.properties.avgVeg || 0);
+}
+
+
 /* ------------ TOOLTIP ------------------------------------------------ */
 const tooltip = d3.select('body').append('div')
   .attr('class', 'tooltip')
@@ -253,31 +264,25 @@ function drawProvinces() {
   paths.enter().append('path')
     .attr('class', 'province')
     .attr('d', path)
-    .attr('fill', d => {
-      const avg = d.properties.avgVeg || 0;
-      return useRgbColor
-        ? vegColorRGB({ trees: avg, bushes: avg, grass: avg })
-        : vegColor(avg);
-    })
+    .attr('fill', provinceFill)
     .attr('stroke', '#444')
     .attr('stroke-width', 1)
     .merge(paths)
     .transition().duration(750).ease(d3.easeCubicInOut)
     .attr('d', path)
-    .attr('fill', d => {
-      const avg = d.properties.avgVeg || 0;
-      return useRgbColor
-        ? vegColorRGB({ trees: avg, bushes: avg, grass: avg })
-        : vegColor(avg);
-    });
+    .attr('fill', provinceFill);
 
   mapLayer.selectAll('path')
     .on('mouseover', function (_, d) {
       d3.select(this).attr('stroke-width', 2);
       tooltip.style('opacity', 1).html(`
         <strong>${d.properties.statnaam}</strong><br>
-        Avg vegetation: ${d.properties.avgVeg.toFixed(1)}%`);
+        🌳 Trees (avg): ${d.properties.avgTrees.toFixed(1)}%<br>
+        🌿 Bushes (avg): ${d.properties.avgBushes.toFixed(1)}%<br>
+        🌾 Grass (avg): ${d.properties.avgGrass.toFixed(1)}%<br>
+        🌱 <em>Total vegetation:</em> ${d.properties.avgVeg.toFixed(1)}%`);
     })
+
     .on('mousemove', e => tooltip.style('left', (e.pageX + 10) + 'px').style('top', (e.pageY - 28) + 'px'))
     .on('mouseout', function () {
       d3.select(this).attr('stroke-width', 1);
@@ -288,24 +293,6 @@ function drawProvinces() {
   const list = [...pc4ByCode.values()].sort((a, b) => d3.descending(a.total, b.total));
   renderRank(list, 'National ranking');
 }
-
-
-  mapLayer.selectAll('path')
-    .on('mouseover', function (_, d) {
-      d3.select(this).attr('stroke-width', 2);
-      tooltip.style('opacity', 1).html(`
-        <strong>${d.properties.statnaam}</strong><br>
-        Avg vegetation: ${d.properties.avgVeg.toFixed(1)}%`);
-    })
-    .on('mousemove', e => tooltip.style('left', (e.pageX + 10) + 'px').style('top', (e.pageY - 28) + 'px'))
-    .on('mouseout', function () {
-      d3.select(this).attr('stroke-width', 1);
-      tooltip.style('opacity', 0);
-    })
-    .on('click', (_, d) => zoomProvince(d));
-
-  const list = [...pc4ByCode.values()].sort((a, b) => d3.descending(a.total, b.total));
-  renderRank(list, 'National ranking');
 
 /* ------------ ZOOM INTO PROVINCE ------------------------------------ */
 function zoomProvince(prov) {
@@ -535,17 +522,32 @@ async function loadAndCacheData() {
     };
   });
 
-
   prov.features.forEach(p => {
-    p.bbox = d3.geoBounds(p);
-    const keep = pc4.features.filter(f => postcodeInProvince(p, f));
-    p.postcodes = keep;
-    const totals = keep.map(f => {
-      const code = f.properties.pc4_code?.toString() || f.properties.postcode;
-      return pc4ByCodeObj[code]?.total ?? -1;
-    }).filter(t => t >= 0);
-    p.properties.avgVeg = totals.length ? d3.mean(totals) : 0;
+  p.bbox = d3.geoBounds(p);
+  const keep = pc4.features.filter(f => postcodeInProvince(p, f));
+  p.postcodes = keep;
+
+  // ── collect vegetation values ──────────────────────────────────────
+  const tVals = [], bVals = [], gVals = [], totVals = [];
+  keep.forEach(f => {
+    const code = f.properties.pc4_code?.toString() || f.properties.postcode;
+    const d    = pc4ByCodeObj[code];
+    if (!d || d.total < 0) return;
+
+    tVals.push(d.v.trees);
+    bVals.push(d.v.bushes);
+    gVals.push(d.v.grass);
+    totVals.push(d.total);
   });
+
+  // ── province-level averages ────────────────────────────────────────
+  const mean = arr => arr.length ? d3.mean(arr) : 0;
+  p.properties.avgVeg    = mean(totVals);          // existing
+  p.properties.avgTrees  = mean(tVals);            // ▼ new
+  p.properties.avgBushes = mean(bVals);            // ▼ new
+  p.properties.avgGrass  = mean(gVals);            // ▼ new
+});
+
 
   const result = {
     provinceGeo: prov,
