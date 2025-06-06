@@ -14,23 +14,29 @@
 
   <h1>🌱 Vegitasion Map Netherlands</h1>
 
-  <!-- Map -->
-  <div id="map-wrapper">
-    <div id="search-box">
-      <input type="text" id="postcode-input" placeholder="Search postcode, ex: 1234" maxlength="4" minlength="4" pattern="\d{4}" inputmode="numeric" />
-      <button id="postcode-btn">Go</button>
+  <!-- Main layout container -->
+  <div id="main-container">
+    
+    <!-- Map -->
+    <div id="map-wrapper">
+      <div id="search-box">
+        <input type="text" id="postcode-input" placeholder="Search postcode, ex: 1234" maxlength="4" minlength="4" pattern="\d{4}" inputmode="numeric" />
+        <button id="postcode-btn">Go</button>
+      </div>
+      <p id="map-attribution">Map data © <a href="https://www.openstreetmap.org/">OpenStreetMap</a> contributors</p>
+      <svg id="map" width="800" height="800"></svg>
+        <button id="color-toggle">Toggle Color Mode</button>
     </div>
-    <p id="map-attribution">Map data © <a href="https://www.openstreetmap.org/">OpenStreetMap</a> contributors</p>
-    <svg id="map" width="800" height="800"></svg>
-  </div>
 
-  <!-- Rank panel -->
-  <aside id="rank-panel" class="hidden"></aside>
+    <!-- Rank panel -->
+    <aside id="rank-panel" class="hidden"></aside>
+  </div>
 
   <!-- Loader -->
   <div class="loader" id="loader">
     <div class="spinner"></div>
     <p>Loading map data…</p>
+    <p>First load time ~3 min</p>
   </div>
 
   <script src="script.js"></script>

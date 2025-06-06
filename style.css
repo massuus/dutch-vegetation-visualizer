@@ -55,13 +55,37 @@ h1 {
     background: #fff;
     margin: 2rem 0;
   }
+svg#map {
+  max-width: 100%;
+  height: auto;
+  display: block;
+}
 
   /* Map container */
-  #map-wrapper {
-    position: relative;
-    display: inline-block;
-    text-align: center;
-  }
+#map-wrapper {
+  position: relative;
+  display: inline-block; /* Needed to size to SVG */
+}
+
+#color-toggle {
+  position: absolute;
+  top: 45px;
+  right: 12px;
+  z-index: 10;
+  padding: 6px 12px;
+  font-size: 14px;
+  cursor: pointer;
+  background: #1976d2;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+#color-toggle:hover {
+  background: #1565c0;
+}
+
 
   /* Map attribution */
   #map-attribution {
@@ -81,18 +105,31 @@ h1 {
     text-decoration: none;
   }
 
+  #main-container {
+  display: flex;
+  align-items: center; /* vertical centering */
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 2rem;
+  width: 100%;
+}
+
 /* ────────────────────────────
    Rank Panel Styling
    ──────────────────────────── */
 #rank-panel {
-  width: 250px;
   background: #fefefe;
   border: 1px solid #ccc;
   border-radius: 8px;
   padding: 12px;
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
   font-size: 13px;
+  max-height: 800px; /* same height as your SVG map */
+  overflow-y: auto;
+  width: 250px;
 }
+
+
 #rank-panel.hidden { display: none; }
 #rank-panel h3 { margin: 0 0 6px; font-size: 16px; }
 #rank-panel strong { display: block; margin: 8px 0 4px; }
