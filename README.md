@@ -26,7 +26,7 @@ Interactive web application for exploring how trees, bushes and grass are distri
 
 ## Video demo
 
-[![Watch the video](./Media/Demo.mp4)]
+[![Watch the video](https://youtu.be/qgWqU1Uqg6w)]
 
 ---
 
